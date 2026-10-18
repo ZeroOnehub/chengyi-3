@@ -101,7 +101,6 @@ input { font: inherit; color: inherit; letter-spacing: 0.04em; }
 @keyframes guide-drop { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(70px); opacity: 0; } }
 .guide-btn { font-size: 16px; letter-spacing: 0.5em; padding: 8px 0 8px 0.5em; color: var(--text); transition: color var(--t-fast), text-shadow var(--t-fast); }
 .guide-btn:hover { color: var(--gold-bright); text-shadow: 0 0 18px rgba(244, 220, 170, 0.6); }
-.sound-hint { position: absolute; left: 50%; bottom: 2.6vh; transform: translateX(-50%); font-size: 12px; color: var(--text-3); margin: 0; white-space: nowrap; }
 #scene-prologue.leaving .prologue-copy { opacity: 0; transform: translateX(-50%) translateY(-10px); }
 #scene-prologue.leaving .enter-guide { opacity: 0; pointer-events: none; }
 
@@ -122,11 +121,16 @@ input { font: inherit; color: inherit; letter-spacing: 0.04em; }
 }
 .map-item {
   position: absolute; padding: 0; transform-origin: 50% 80%;
-  transition: transform 0.45s var(--ease), filter 0.45s var(--ease);
+  transition: opacity 1.4s var(--ease) var(--d, 0s), transform 1.6s var(--ease) var(--d, 0s), filter 1.6s var(--ease) var(--d, 0s);
   filter: drop-shadow(0 0 0 rgba(244, 220, 170, 0));
 }
+/* 浮现前：透明、略低、带一点光晕，像从山河里显影 */
+.map-items.pre .map-item { opacity: 0; transform: translateY(14px) scale(0.94); filter: brightness(1.8) blur(4px) drop-shadow(0 0 14px rgba(244, 220, 170, 0.6)); transition: none; }
+#scene-map.handoff { visibility: visible; transition: none; }
+#scene-map .map-legend, #scene-map .map-zoom, #scene-map .map-hint { transition: opacity 1.4s var(--ease); }
+#scene-map.ui-pre .map-legend, #scene-map.ui-pre .map-zoom, #scene-map.ui-pre .map-hint { opacity: 0; }
 .map-item img { display: block; width: 100%; height: 100%; pointer-events: none; }
-.map-item:hover, .map-item:focus-visible { transform: scale(1.07); filter: brightness(1.18) drop-shadow(0 0 10px rgba(244, 220, 170, 0.55)); outline: none; }
+.map-item:hover, .map-item:focus-visible { transition: transform 0.45s var(--ease), filter 0.45s var(--ease); transform: scale(1.07); filter: brightness(1.18) drop-shadow(0 0 10px rgba(244, 220, 170, 0.55)); outline: none; }
 .map-item .tag {
   position: absolute; left: 50%; bottom: 100%; margin-bottom: 8px; white-space: nowrap;
   transform: translateX(-50%) scale(var(--inv, 1)); transform-origin: 50% 100%;
@@ -143,6 +147,7 @@ input { font: inherit; color: inherit; letter-spacing: 0.04em; }
 }
 @keyframes pulse { 50% { opacity: 0.35; } }
 .map-legend { position: absolute; left: var(--gutter); bottom: 34px; max-width: 320px; pointer-events: none; }
+.map-replay { pointer-events: auto; font-size: 12px; margin-top: 6px; color: var(--text-3); }
 .map-legend-title { margin: 0 0 8px; font-size: 16px; letter-spacing: 0.4em; color: var(--text); }
 .map-legend-note { margin: 0; font-size: 12px; line-height: 1.9; color: var(--text-3); }
 .map-zoom { position: absolute; right: var(--gutter); bottom: 34px; display: flex; flex-direction: column; gap: 10px; }
@@ -205,6 +210,9 @@ input { font: inherit; color: inherit; letter-spacing: 0.04em; }
 .ch-svg { position: absolute; left: 0; top: 0; width: 1672px; height: 941px; overflow: visible; }
 .ch-glow { position: absolute; border-radius: 50%; pointer-events: none; }
 .ch-fx { z-index: 2; }
+.ch-video { z-index: 5; object-fit: cover; pointer-events: none; transition: none; }
+.ch-text .ch-block, .ch-text .ch-steps { transition: visibility 0s; }
+.ch-text.video-on .ch-block, .ch-text.video-on .ch-steps { visibility: hidden; }
 .ch-text { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 .ch-num { position: absolute; top: 34px; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 12px; font-size: 22px; color: var(--text); }
 .ch-block { position: absolute; will-change: transform, opacity; }

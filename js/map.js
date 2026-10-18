@@ -1,14 +1,15 @@
 // 山河器物地图：底图、雾层、器物与热点同在“地图坐标系”里一起拖动缩放；
 // 光河流光、环境微粒、鼠标拖尾画在屏幕坐标系的画布上。
 import { $, clamp, fitCanvas, glowSprite, rng, sampleSpline, pointAt, tween, easeInOut } from './util.js';
-import { MAP_SIZE, OBJECTS, RIVER } from './data.js';
+import { MAP_SIZE, OBJECTS, RIVER, VIDEO_TO_MAP } from './data.js';
 
 const W = MAP_SIZE.w, H = MAP_SIZE.h;
-let app, viewport, world, canvas, ctx, itemsEl, hint;
+let app, sceneEl, viewport, world, canvas, ctx, itemsEl, hint;
 let raf = 0, last = 0, running = false;
 const view = { s: 1, x: 0, y: 0 };
 const target = { s: 1, x: 0, y: 0 };
 let saved = null, prepared = false, focusing = false, focusTween = null;
+let fxLevel = 1, settleUntil = 0, revealTimers = [];
 let minS = 1, maxS = 2.6;
 const river = sampleSpline(RIVER, 20);
 const gold = glowSprite('255,212,140');
@@ -90,7 +91,9 @@ function frame(now) {
   const dt = Math.min(0.05, (now - (last || now)) / 1000);
   last = now;
   if (!focusing) {
-    const k = app.reduced ? 1 : 1 - Math.exp(-dt * 12);
+    // 从过场接手后的前几秒，镜头缓慢落定，延续视频末尾的运动感
+    const rate = now < settleUntil ? 1.4 : 12;
+    const k = app.reduced ? 1 : 1 - Math.exp(-dt * rate);
     view.s += (target.s - view.s) * k;
     view.x += (target.x - view.x) * k;
     view.y += (target.y - view.y) * k;
@@ -120,7 +123,7 @@ function draw(t, dt) {
     const fade = Math.min(1, g.u * 8, (1 - g.u) * 6);
     const tw = 0.55 + 0.45 * Math.sin(t * 3 + g.tw);
     const r = (1.4 + g.sz * 2.4) * persp * view.s * dpr;
-    ctx.globalAlpha = 0.8 * fade * tw;
+    ctx.globalAlpha = 0.8 * fade * tw * fxLevel;
     ctx.drawImage(gold, sx - r * 2, sy - r * 2, r * 4, r * 4);
   }
 
@@ -130,7 +133,7 @@ function draw(t, dt) {
     const par = 1 + m.z * 0.25;
     const sx = (view.x * par + px * view.s) * dpr, sy = (view.y * par + py * view.s) * dpr;
     const r = (1 + m.z * 3) * dpr;
-    ctx.globalAlpha = 0.2 + 0.3 * (0.5 + 0.5 * Math.sin(t * 1.3 + m.ph));
+    ctx.globalAlpha = (0.2 + 0.3 * (0.5 + 0.5 * Math.sin(t * 1.3 + m.ph))) * fxLevel;
     ctx.drawImage(pale, sx - r * 2, sy - r * 2, r * 4, r * 4);
   }
 
@@ -181,27 +184,57 @@ async function focus(o, btn) {
   if (focusing) return;
   focusing = true;
   saved = { ...target };
-  const rect = btn.getBoundingClientRect();
   const { vw, vh } = limits();
   const cx = o.map.x + o.map.w / 2, cy = o.map.y + o.map.h / 2;
   const s0 = { ...view };
   const s2 = Math.min(maxS * 1.1, view.s * 2.4);
   const to = { s: s2, x: vw / 2 - cx * s2, y: vh * 0.52 - cy * s2 };
-  btn.style.visibility = 'hidden';
-  const dur = app.reduced ? 250 : 1100;
-  // 地图镜头向目标推进；器物本身由近景模块接手，从原位飞向中央
-  app.go('object', { id: o.id, fromRect: rect, fromMap: true });
-  focusTween = tween(dur, (k) => {
+  const dur = app.reduced ? 250 : 1300;
+  // 先让地图镜头朝器物推进一段，再由近景接手：器物从它此刻在屏幕上的位置继续飞向中央
+  let handed = false;
+  const handAt = app.reduced ? 0 : 0.38;
+  focusTween = tween(dur, (k, t) => {
     view.s = s0.s + (to.s - s0.s) * k;
     view.x = s0.x + (to.x - s0.x) * k;
     view.y = s0.y + (to.y - s0.y) * k;
+    apply();
+    if (!handed && t >= handAt) {
+      handed = true;
+      const rect = btn.getBoundingClientRect();
+      btn.style.visibility = 'hidden';
+      app.go('object', { id: o.id, fromRect: rect, fromMap: true });
+    }
   }, easeInOut);
   await focusTween;
+}
+
+/** 器物、光效与界面逐步出现：由近及远依次浮现，避免所有东西同一帧弹出。 */
+function reveal(fromVideo) {
+  revealTimers.forEach(clearTimeout);
+  revealTimers = [];
+  const { vw, vh } = limits();
+  const items = [...itemsEl.querySelectorAll('.map-item')];
+  const center = (b) => {
+    const o = OBJECTS.find((x) => x.id === b.dataset.id);
+    const sx = view.x + (o.map.x + o.map.w / 2) * view.s, sy = view.y + (o.map.y + o.map.h / 2) * view.s;
+    return Math.hypot(sx - vw / 2, (sy - vh * 0.75) * 1.4);
+  };
+  items.sort((a, b) => center(a) - center(b));
+  const base = fromVideo ? 0.5 : 0.7;
+  items.forEach((b, i) => b.style.setProperty('--d', `${(base + i * 0.28).toFixed(2)}s`));
+  itemsEl.classList.add('pre');
+  sceneEl.classList.add('ui-pre');
+  fxLevel = 0;
+  requestAnimationFrame(() => requestAnimationFrame(() => itemsEl.classList.remove('pre')));
+  tween(app.reduced ? 200 : 2600, (k) => { fxLevel = k; }, (x) => x);
+  revealTimers.push(setTimeout(() => sceneEl.classList.remove('ui-pre'), app.reduced ? 100 : 2200));
+  revealTimers.push(setTimeout(() => items.forEach((b) => b.style.removeProperty('--d')), 4200));
 }
 
 export const map = {
   init(a) {
     app = a;
+    sceneEl = $('#scene-map');
     viewport = $('#map-viewport');
     world = $('#map-world');
     canvas = $('#map-fx');
@@ -231,7 +264,33 @@ export const map = {
       if (e.key === '-') zoomAt(vw / 2, vh / 2, 0.8);
     });
   },
-  /** 过场视频播放时提前摆好首帧取景：与视频尾帧一致的整幅铺满视角。 */
+  /** 过场视频播放时提前摆好：按视频尾帧的取景放置地图，叠在视频上方、完全透明。 */
+  prepareHandoff() {
+    prepared = true;
+    const { vw, vh } = limits();
+    const V = VIDEO_TO_MAP;
+    const cs = Math.max(vw / V.w, vh / V.h); // 视频 object-fit: cover 的缩放
+    const cx = (vw - V.w * cs) / 2, cy = (vh - V.h * cs) / 2;
+    view.s = cs / V.s;
+    view.x = cx - view.s * V.tx;
+    view.y = cy - view.s * V.ty;
+    Object.assign(target, view);
+    apply();
+    itemsEl.querySelectorAll('.map-item').forEach((b) => { b.style.visibility = ''; });
+    itemsEl.classList.add('pre');
+    sceneEl.classList.add('handoff', 'ui-pre');
+    sceneEl.style.opacity = '0';
+    fxLevel = 0;
+    running = true;
+    last = 0;
+    cancelAnimationFrame(raf);
+    raf = requestAnimationFrame(frame);
+  },
+  /** k: 0..1，随视频播放推进的交叉淡化进度。 */
+  handoff(k) {
+    const e = k * k * (3 - 2 * clamp(k));
+    sceneEl.style.opacity = clamp(e).toFixed(3);
+  },
   prepare() {
     if (prepared) return;
     prepared = true;
@@ -245,6 +304,16 @@ export const map = {
     focusTween?.cancel();
     itemsEl.querySelectorAll('.map-item').forEach((b) => { b.style.visibility = ''; });
     if (!prepared) this.prepare();
+    if (opts.fromVideo) {
+      // 视频已在结尾与地图交叉淡化完毕，这里只撤掉临时状态，镜头缓慢落到整幅取景
+      sceneEl.classList.add('instant');
+      sceneEl.style.opacity = '';
+      sceneEl.classList.remove('handoff');
+      requestAnimationFrame(() => sceneEl.classList.remove('instant'));
+      Object.assign(target, clampView(homeView()));
+      settleUntil = performance.now() + 3000;
+    }
+    if (opts.fromVideo || opts.reveal || opts.direct) reveal(!!opts.fromVideo);
     if (opts.back && saved) {
       // 从近景返回：回到离开前的视角，带一点后退的镜头
       Object.assign(target, clampView({ ...saved }));

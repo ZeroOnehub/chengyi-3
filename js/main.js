@@ -99,10 +99,12 @@ export const app = {
 // 顶部控件
 $('#btn-sound').addEventListener('click', () => { app.setMuted(!app.muted); if (!app.muted) sound.unlock(); });
 $('#btn-motion').addEventListener('click', () => app.setReduced(!app.reduced));
+// 重播序章：回到序章初始状态，不清除工作台草稿
+$('#btn-replay').addEventListener('click', () => app.go('prologue', { force: true }));
 
 // 浏览器要求用户操作后才能出声：第一次操作时启动环境声
 const unlockOnce = () => {
-  if (sound.unlock()) $('#sound-hint').hidden = true;
+  sound.unlock();
   window.removeEventListener('pointerdown', unlockOnce);
   window.removeEventListener('keydown', unlockOnce);
 };
@@ -130,7 +132,6 @@ if (direct.includes(start)) {
   });
 } else {
   app.go('prologue', { instant: true });
-  if (!app.muted) $('#sound-hint').hidden = false;
 }
 
 window.chengyi = app; // 便于调试

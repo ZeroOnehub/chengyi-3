@@ -85,6 +85,10 @@ function playNarrative() {
   later(700 + chars.length * 150 + 2100, () => { $('#enter-guide').classList.add('on'); phase = 'ready'; });
 }
 
+// 视频最后约一秒镜头基本静止，取景与地图底图一致（见 data.js 的 VIDEO_TO_MAP），从这里开始交叉淡化
+const HANDOFF_AT = 9.0;
+const AUDIO_FADE = 1.4; // 结尾声音淡出时长（秒），避免声轨被截断
+
 async function enterMap() {
   if (phase !== 'ready' && phase !== 'playing') return;
   phase = 'entering';
@@ -93,12 +97,13 @@ async function enterMap() {
   $('#btn-enter').disabled = true;
   app.scene = 'entering';
   document.getElementById('app').dataset.scene = 'entering';
-  app.setSkip('跳过', finish);
+  app.setSkip('跳过', () => finish(true));
 
-  if (app.reduced) { await wait(300); return finish(); }
+  if (app.reduced) { await wait(300); return finish(true); }
 
-  sound.duck(0.25, 1.2);
+  sound.duck(0.2, 1.2);
   video.muted = app.muted;
+  video.volume = 1;
   video.currentTime = 0;
   let ok = false;
   try {
@@ -108,24 +113,32 @@ async function enterMap() {
     // 有声播放被拒时改为静音再试
     try { video.muted = true; await video.play(); ok = true; } catch { ok = false; }
   }
-  if (!ok) { app.toast('过场视频暂时无法播放，已直接进入山河'); return finish(); }
+  if (!ok) { app.toast('过场视频暂时无法播放，已直接进入山河'); return finish(true); }
   video.classList.add('on');
-  // 预先把地图放到视频下方，结束时交叉淡化
-  app.modules.map.prepare();
-  video.onended = () => finish();
+  // 地图提前按视频尾帧的取景摆好，放在视频上方、完全透明
+  app.modules.map.prepareHandoff();
+  const tick = () => {
+    if (phase !== 'entering') return;
+    const t = video.currentTime, d = video.duration || 10.06;
+    video.volume = Math.max(0, Math.min(1, (d - t) / AUDIO_FADE));
+    if (t >= HANDOFF_AT) app.modules.map.handoff((t - HANDOFF_AT) / (d - HANDOFF_AT));
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  video.onended = () => finish(false);
   // 卡顿保护：超出视频时长较多仍未结束则直接进入
-  timers.push(setTimeout(() => phase === 'entering' && finish(), (video.duration || 10) * 1000 + 4000));
+  timers.push(setTimeout(() => phase === 'entering' && finish(true), (video.duration || 10) * 1000 + 4000));
 }
 
-function finish() {
+/** skipped：用户跳过或播放失败时为 true，此时地图直接淡入；正常播完则地图已经叠在视频上。 */
+function finish(skipped) {
   if (phase === 'done') return;
   phase = 'done';
   clearTimers();
   video.onended = null;
-  sound.duck(1, 2);
-  app.go('map', { fromVideo: true }).then(() => {
-    // 地图淡入覆盖视频之后再停掉视频，避免黑屏
-    setTimeout(() => { video.pause(); video.classList.remove('on'); }, 900);
+  sound.duck(1, 2.5);
+  app.go('map', { fromVideo: !skipped, reveal: true }).then(() => {
+    setTimeout(() => { video.pause(); video.classList.remove('on'); }, 1000);
   });
 }
 
@@ -149,15 +162,16 @@ export const prologue = {
       if (app.scene !== 'prologue') return;
       if (['ArrowDown', 'PageDown', ' ', 'Enter'].includes(e.key) && phase === 'ready' && document.activeElement?.id !== 'btn-enter') enterMap();
     });
-    video.addEventListener('error', () => { if (phase === 'entering') { app.toast('过场视频加载失败，已直接进入山河'); finish(); } });
+    video.addEventListener('error', () => { if (phase === 'entering') { app.toast('过场视频加载失败，已直接进入山河'); finish(true); } });
   },
   enter() {
     $('#btn-enter').disabled = false;
+    el.classList.remove('leaving');
     video.classList.remove('on');
     video.pause();
     phase = 'idle';
     app.setBrand('承艺');
-    app.setSkip('跳过', finish);
+    app.setSkip('跳过', () => finish(true));
     cancelAnimationFrame(raf);
     raf = requestAnimationFrame(frame);
     playNarrative();
