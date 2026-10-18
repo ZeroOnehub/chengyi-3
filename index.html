@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>承艺</title>
+  <meta name="description" content="承艺：可探索、可参与创作的中国非遗数字世界。">
+  <meta name="theme-color" content="#05090a">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;500;600&display=swap">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="preload" as="image" href="assets/img/prologue.jpg">
+  <script type="importmap">
+    { "imports": { "three": "./js/vendor/three.module.min.js" } }
+  </script>
+</head>
+<body>
+<div id="app" data-scene="prologue">
+
+  <!-- 顶部：品牌居中，右上为声音 / 动态 / 跳过 -->
+  <header class="topbar">
+    <div class="topbar-left">
+      <button class="link-btn back-btn" id="btn-back" hidden><span aria-hidden="true">←</span> <span class="back-label">返回</span></button>
+    </div>
+    <div class="brand" id="brand">
+      <span class="brand-name" id="brand-name">承艺</span>
+      <i class="brand-rule" aria-hidden="true"><b></b></i>
+    </div>
+    <div class="topbar-right">
+      <button class="link-btn" id="btn-sound" aria-pressed="true">声音：开</button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="link-btn" id="btn-motion" aria-pressed="false">动态：完整</button>
+      <span class="sep sep-skip" aria-hidden="true"></span>
+      <button class="link-btn" id="btn-skip">跳过</button>
+    </div>
+  </header>
+
+  <!-- 第一幕：序章 -->
+  <section class="scene" id="scene-prologue" aria-label="序章">
+    <img class="cover-img" src="assets/img/prologue.jpg" alt="" aria-hidden="true">
+    <canvas class="fx-canvas" id="prologue-fx" aria-hidden="true"></canvas>
+    <video class="cover-img enter-video" id="enter-video" playsinline preload="auto"
+           poster="assets/video/enter-poster.jpg" src="assets/video/enter.mp4" aria-hidden="true"></video>
+    <div class="prologue-copy" id="prologue-copy">
+      <h1 class="prologue-title" id="prologue-title" aria-label="万千手艺，由此生光">万千手艺，由此生光</h1>
+      <p class="prologue-sub" id="prologue-sub">与 AI 一起，让心意成形</p>
+    </div>
+    <div class="enter-guide" id="enter-guide">
+      <span class="guide-line" aria-hidden="true"><i></i></span>
+      <button class="guide-btn" id="btn-enter">寻光入境</button>
+    </div>
+    <p class="sound-hint" id="sound-hint" hidden>浏览器暂未允许自动播放声音，点击任意处开启</p>
+  </section>
+
+  <!-- 第三幕：山河器物地图 -->
+  <section class="scene" id="scene-map" aria-label="山河器物地图">
+    <div class="map-viewport" id="map-viewport">
+      <div class="map-world" id="map-world">
+        <img class="map-base" src="assets/img/map.jpg" alt="" draggable="false">
+        <div class="map-fog" id="map-fog" aria-hidden="true"></div>
+        <div class="map-items" id="map-items"></div>
+      </div>
+      <canvas class="fx-canvas" id="map-fx" aria-hidden="true"></canvas>
+    </div>
+    <div class="map-legend">
+      <p class="map-legend-title">山河 · 寻器</p>
+      <p class="map-legend-note">陶瓷已开放创作，其余工艺即将开放。<br>山河为艺术化导航，不代表真实地理。</p>
+    </div>
+    <div class="map-zoom" role="group" aria-label="缩放">
+      <button class="round-btn" id="zoom-in" aria-label="放大">＋</button>
+      <button class="round-btn" id="zoom-out" aria-label="缩小">－</button>
+    </div>
+    <p class="map-hint" id="map-hint">按住拖动探索 · 滚轮缩放 · 点击器物</p>
+  </section>
+
+  <!-- 第四幕：器物近景 -->
+  <section class="scene" id="scene-object" aria-label="器物近景">
+    <div class="co-stage" id="co-stage">
+      <img class="co-layer" data-depth="0.15" src="assets/img/object-sky.jpg" alt="">
+      <img class="co-layer" data-depth="0.35" src="assets/img/object-hills.png" alt="">
+      <img class="co-layer" data-depth="0.55" src="assets/img/object-river.png" alt="">
+      <canvas class="co-particles" id="co-particles"></canvas>
+      <div class="co-solids" id="co-solids"></div>
+      <img class="co-layer co-front" data-depth="1.1" src="assets/img/object-front.png" alt="">
+    </div>
+    <div class="co-heading">
+      <p class="co-title">万象有形，心意由你</p>
+      <i class="brand-rule" aria-hidden="true"><b></b></i>
+    </div>
+    <button class="co-hit" id="co-hit-left" aria-label="上一件器物"><span class="co-hit-label"></span></button>
+    <button class="co-hit" id="co-hit-right" aria-label="下一件器物"><span class="co-hit-label"></span></button>
+    <div class="co-info" id="co-info" aria-live="polite">
+      <p class="co-name" id="co-name"></p>
+      <p class="co-meta" id="co-meta"></p>
+      <button class="pill-btn" id="btn-create">与 AI 开始创作 <span aria-hidden="true">›</span></button>
+    </div>
+  </section>
+
+  <!-- 陶瓷篇章：从土成器，归土承艺 -->
+  <section class="scene" id="scene-chapter" aria-label="陶瓷篇章">
+    <div class="ch-stage" id="ch-stage"></div>
+    <canvas class="fx-canvas ch-fx" id="ch-fx" aria-hidden="true"></canvas>
+    <div class="ch-text" id="ch-text"></div>
+    <nav class="ch-index" id="ch-index" aria-label="篇章进度"></nav>
+    <p class="ch-hint" id="ch-hint">向下滑动，循光而行</p>
+    <div class="ch-end" id="ch-end">
+      <button class="pill-btn pill-strong" id="btn-to-workbench">以此为始，与 AI 塑你的器 <span aria-hidden="true">›</span></button>
+      <button class="link-btn" id="btn-replay-chapter">从头再看</button>
+    </div>
+  </section>
+
+  <!-- 工作台 -->
+  <section class="scene" id="scene-workbench" aria-label="工作台">
+    <img class="cover-img wb-bg" src="assets/img/studio.jpg" alt="">
+    <div class="wb-canvas-wrap" id="wb-canvas-wrap"></div>
+    <div class="wb-kiln" id="wb-kiln" aria-hidden="true"><i></i><i></i><i></i></div>
+    <p class="wb-drag-hint" id="wb-drag-hint">拖动旋转 · 滚轮远近</p>
+
+    <nav class="wb-steps" id="wb-steps" aria-label="创作步骤"></nav>
+
+    <aside class="wb-panel" id="wb-panel" aria-live="polite"></aside>
+
+    <div class="wb-tools">
+      <button class="chip" id="wb-undo">撤销</button>
+      <button class="chip" id="wb-redo">重做</button>
+    </div>
+
+    <div class="wb-ai" id="wb-ai">
+      <div class="ai-reply" id="ai-reply" hidden></div>
+      <form class="ai-bar" id="ai-form" autocomplete="off">
+        <span class="ai-mark" aria-hidden="true"></span>
+        <input id="ai-input" type="text" maxlength="80" placeholder="说说你的心意，如：想要一只修长的天青瓶，配缠枝莲" aria-label="告诉 AI 你的心意">
+        <button type="button" class="link-btn" id="ai-inspire">给我灵感</button>
+        <button type="submit" class="ai-send" aria-label="发送">›</button>
+      </form>
+      <p class="ai-note">AI 助手演示版：按关键词理解你的描述，尚未接入大模型</p>
+    </div>
+
+    <button class="pill-btn pill-strong wb-finish" id="wb-finish">完成，入窑 <span aria-hidden="true">›</span></button>
+    <p class="wb-caption" id="wb-caption" aria-live="polite"></p>
+
+    <div class="dialog" id="name-dialog" role="dialog" aria-modal="true" aria-labelledby="name-title" hidden>
+      <form class="dialog-card" id="name-form">
+        <p class="dialog-kicker">开窑</p>
+        <h2 id="name-title">为你的器取个名字</h2>
+        <label class="field"><span>器名</span><input id="work-name" maxlength="16" required></label>
+        <label class="field"><span>落款</span><input id="work-author" maxlength="12" placeholder="可留空"></label>
+        <div class="dialog-actions">
+          <button type="button" class="link-btn" id="name-cancel">再改改</button>
+          <button type="submit" class="pill-btn pill-strong">落款，去分享 <span aria-hidden="true">›</span></button>
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <!-- 分享（本期流程终点） -->
+  <section class="scene" id="scene-share" aria-label="分享作品">
+    <img class="cover-img" src="assets/img/studio.jpg" alt="">
+    <div class="share-wrap">
+      <figure class="share-card"><img id="share-img" alt="作品分享图"></figure>
+      <div class="share-side">
+        <p class="dialog-kicker">作品已完成</p>
+        <h2 class="share-name" id="share-name"></h2>
+        <p class="share-meta" id="share-meta"></p>
+        <div class="share-actions">
+          <button class="pill-btn pill-strong" id="share-download">保存分享图</button>
+          <button class="pill-btn" id="share-native" hidden>分享到…</button>
+          <button class="pill-btn" id="share-copy">复制分享文案</button>
+        </div>
+        <div class="share-more">
+          <button class="link-btn" id="share-again">再做一件</button>
+          <span class="sep" aria-hidden="true"></span>
+          <button class="link-btn" id="share-map">回到山河</button>
+        </div>
+        <p class="share-note">作品与分享图只保存在这台设备的浏览器里；公开链接分享与个人场馆将在后续版本开放。</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="veil" id="veil" aria-hidden="true"></div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</div>
+
+<noscript><p class="noscript">请开启 JavaScript 以浏览承艺。</p></noscript>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
