@@ -11,7 +11,8 @@
 </style>
 </head>
 <body>
-<!-- 自动走一遍：序章 → 过场 → 地图 → 近景切换 → 篇章 → 工作台（手动 + AI）→ 入窑 → 分享 -->
+<!-- 自动走一遍：序章 → 过场 → 地图 → 近景切换 → 篇章 → 工作台（五步手动 + AI）→ 入窑 → 分享。
+     用后台启动时测联网的 Agent 路径；用 tools/serve.py 预览时测本机规则。 -->
 <pre id="out">RUNNING</pre>
 <iframe id="f"></iframe>
 <script type="module">
@@ -97,46 +98,56 @@ try {
   log($('#ch-end').classList.contains('on'), '篇章末尾出现进入工作台的按钮');
   $('#btn-to-workbench').click();
   log(await until(() => app.scene === 'workbench', 5000), '进入工作台');
-  log(await until(() => d.querySelector('#wb-panel .opt'), 90000), '器物模型与选项加载完成');
+  log(await until(() => d.querySelector('#wb-panel .wb-card'), 30000), '工作台打开在「择土」，坯体与面板加载完成');
+  log(d.querySelectorAll('#wb-steps .wb-step').length === 5 && $('#wb-steps').textContent.replace(/\s/g, '') === '择土练泥成形施釉入窑', '左侧五步：择土 · 练泥 · 成形 · 施釉 · 入窑');
+  await until(() => !/正在连接/.test($('#ai-status').textContent), 15000);
+  const online = /已连接/.test($('#ai-status').textContent);
+  lines.push(`      AI：${$('#ai-status').textContent}`);
+  const pd = () => { try { return JSON.parse(w.localStorage.getItem('chengyi3.pottery')) || {}; } catch { return {}; } };
 
-  // 手动操作
-  d.querySelector('[data-k="shape"][data-v="tianqiu"]').click();
-  await sleep(200);
-  log(d.querySelector('[data-k="shape"][data-v="tianqiu"]').getAttribute('aria-pressed') === 'true', '选择器型：丰腹');
-  d.querySelector('[data-next="glaze"]').click();
-  d.querySelector('[data-k="glaze"][data-v="tianqing"]').click();
-  await sleep(200);
-  log(JSON.parse(w.localStorage.getItem('chengyi3.draft')).glaze === 'tianqing', '选择釉色：天青，草稿已保存');
+  // 择土 → 练泥 → 成形 → 施釉（手动）
+  d.querySelector('[data-clay="terracotta"]').click();
+  log(await until(() => pd().material === 'terracotta', 3000), '择土：选赤陶泥，草稿已保存');
+  d.querySelector('[data-step="clay"]').click();
+  d.querySelector('[data-form="bowl"]').click();
+  log(await until(() => pd().preset === 'bowl' && pd().height === 12, 3000), '练泥：换成茶碗坯');
   $('#wb-undo').click();
-  await sleep(100);
-  log(JSON.parse(w.localStorage.getItem('chengyi3.draft')).glaze !== 'tianqing', '撤销生效');
+  log(await until(() => pd().preset !== 'bowl', 8000), `撤销生效（${online ? '后台历史' : '本机历史'}）`);
   $('#wb-redo').click();
-  await sleep(100);
-  log(JSON.parse(w.localStorage.getItem('chengyi3.draft')).glaze === 'tianqing', '重做生效');
+  log(await until(() => pd().preset === 'bowl', 8000), '重做生效');
+  d.querySelector('[data-step="form"]').click();
+  d.querySelector('[data-outline="heart"]').click();
+  log(await until(() => pd().cross_section?.shape === 'heart' && !$('#wb-top').hidden, 3000), '成形：俯视形状改为爱心，打开俯视小窗');
+  d.querySelector('[data-step="glaze"]').click();
+  d.querySelector('[data-glaze="tianqing"]').click();
+  log(await until(() => pd().glaze === 'tianqing', 3000), '施釉：天青釉');
+  d.querySelector('[data-pattern="cloud"]').click();
+  log(await until(() => pd().pattern === 'cloud' && !d.querySelector('[data-ink]').disabled, 3000), '施釉：云纹，纹色可选');
 
-  // AI
-  $('#ai-input').value = '想要一只修长的粉青瓶，配缠枝莲，红色';
-  $('#ai-form').requestSubmit();
-  await until(() => d.querySelector('#ai-reply [data-a="yes"]'), 3000);
-  log(!!d.querySelector('#ai-reply [data-a="yes"]'), `AI 给出建议：${$('#ai-reply').textContent.slice(0, 60)}`);
-  d.querySelector('#ai-reply [data-a="yes"]').click();
-  await sleep(300);
-  const dr = JSON.parse(w.localStorage.getItem('chengyi3.draft'));
-  log(dr.shape === 'dan' && dr.glaze === 'fenqing' && dr.pattern === 'lotus' && dr.ink === 'copper', 'AI 建议确认后才应用（修长 · 粉青 · 缠枝莲 · 釉里红）');
-  $('#ai-input').value = '今天天气怎么样';
-  $('#ai-form').requestSubmit();
-  await sleep(300);
-  log(!d.querySelector('#ai-reply [data-a="yes"]'), '无关的话不乱改作品');
+  // 承艺 AI（联网走后台规则 / Agent，离线走本机规则；两种都能理解这两句）
+  const ask = async (text) => { const n = d.querySelectorAll('.ai-msg').length; $('#ai-input').value = text; $('#ai-form').requestSubmit(); await until(() => d.querySelectorAll('.ai-msg').length >= n + 2 && !$('#scene-workbench').classList.contains('ai-busy'), 30000); };
+  await ask('施粉青釉');
+  log(await until(() => pd().glaze === 'fenqing', 5000), `AI：「施粉青釉」已执行（${[...d.querySelectorAll('.ai-msg')].pop().textContent.slice(0, 30)}）`);
+  await ask('加缠枝莲纹');
+  log(await until(() => pd().pattern === 'lotus', 5000), 'AI：「加缠枝莲纹」已执行');
+  await ask('做个茶碗');
+  log(await until(() => pd().preset === 'bowl' && pd().cross_section?.shape === 'circle', 5000), 'AI：「做个茶碗」重置为圆形茶碗');
+  if (!online) {
+    const before = JSON.stringify(pd());
+    await ask('今天天气怎么样');
+    log(JSON.stringify(pd()) === before, '无关的话不乱改作品');
+  }
+  const beforeInspire = JSON.stringify(pd());
   $('#ai-inspire').click();
-  log(!!d.querySelector('#ai-reply [data-a="yes"]'), '「给我灵感」给出一组搭配');
+  log(await until(() => JSON.stringify(pd()) !== beforeInspire, 3000), '「给我灵感」换上一组搭配');
 
-  // 入窑 → 命名 → 分享
+  // 入窑 → 分享
   app.setReduced(true);
-  $('#wb-finish').click();
-  log(await until(() => !$('#name-dialog').hidden, 30000), '入窑后弹出命名');
-  $('#work-name').value = '测试之器';
-  $('#name-form').requestSubmit();
-  log(await until(() => app.scene === 'share', 30000), '落款后进入分享页');
+  d.querySelector('[data-step="kiln"]').click();
+  await until(() => d.querySelector('#wb-name'), 2000);
+  $('#wb-name').value = '测试之器';
+  d.querySelector('[data-fire]').click();
+  log(await until(() => app.scene === 'share', 30000), '入窑后进入分享页');
   await sleep(300);
   log($('#share-img').src.startsWith('data:image/jpeg') && $('#share-img').src.length > 50000, `生成分享图（${Math.round($('#share-img').src.length / 1024)} KB）`);
   log($('#share-name').textContent === '测试之器', '分享页显示作品名');

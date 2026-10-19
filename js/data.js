@@ -1,4 +1,4 @@
-// 内容数据：器物、地图光河、陶瓷篇章文案、工作台选项。
+// 内容数据：器物、地图光河、陶瓷篇章文案。工作台的器形、泥料、釉色等在 js/pottery/model.js。
 // 名称与说明均为示意，未经内容组核验的项目一律标“示意 / 待核实”，不写入具体史实或地域归属。
 
 export const MAP_SIZE = { w: 1678, h: 937 };
@@ -84,39 +84,3 @@ export const STORY_VIDEOS = [
   { id: 'v7', src: 'assets/story/video/v7-shatter.mp4', range: [0.785, 0.915] },
   { id: 'v8', src: 'assets/story/video/v8-soil-to-stage.mp4', range: [0.915, 0.975] },
 ];
-
-/** 工作台：器型、釉色、纹样。器型参数作用于青瓷云纹瓶 GLB 的轮廓。 */
-export const SHAPES = [
-  { id: 'yuhuchun', name: '玉壶春', note: '原型器形，颈细腹圆', p: { W: 1, H: 1, B: 0, S: 0, N: 0 } },
-  { id: 'dan', name: '修长', note: '收腹拉高，形如胆瓶', p: { W: 0.86, H: 1.12, B: -0.06, S: 0, N: -0.1 } },
-  { id: 'tianqiu', name: '丰腹', note: '腹部饱满，形近天球', p: { W: 1.06, H: 0.94, B: 0.16, S: 0.04, N: 0 } },
-  { id: 'meiyun', name: '丰肩', note: '肩部隆起，腹下内收', p: { W: 0.96, H: 1.04, B: -0.16, S: 0.26, N: 0 } },
-];
-
-export const GLAZES = [
-  { id: 'yingqing', name: '影青', rgb: [205, 224, 220], note: '青白相间，薄处见白' },
-  { id: 'tianqing', name: '天青', rgb: [178, 204, 212], note: '淡青微蓝' },
-  { id: 'fenqing', name: '粉青', rgb: [163, 197, 178], note: '青中泛绿，温润如玉' },
-  { id: 'douqing', name: '豆青', rgb: [176, 190, 148], note: '青黄相和' },
-  { id: 'yuebai', name: '月白', rgb: [222, 228, 226], note: '白中闪青' },
-  { id: 'tianbai', name: '甜白', rgb: [238, 234, 222], note: '洁白温润' },
-];
-
-export const PATTERNS = [
-  { id: 'cloud', name: '云纹', note: '原器云气纹' },
-  { id: 'lotus', name: '缠枝莲', note: '连绵花叶绕腹一周' },
-  { id: 'wave', name: '海水', note: '下腹层叠浪纹' },
-  { id: 'plain', name: '素面', note: '不加纹饰，只见釉色' },
-];
-
-export const INKS = [
-  { id: 'cobalt', name: '青花', rgb: [38, 74, 140] },
-  { id: 'copper', name: '釉里红', rgb: [146, 52, 44] },
-  { id: 'gold', name: '描金', rgb: [184, 142, 72] },
-  { id: 'ink', name: '墨彩', rgb: [44, 50, 56] },
-];
-
-export const DEFAULT_WORK = {
-  shape: 'yuhuchun', W: 1, H: 1, glaze: 'yingqing', gloss: 'bright', crackle: false,
-  pattern: 'cloud', ink: 'cobalt',
-};

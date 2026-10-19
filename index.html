@@ -111,53 +111,71 @@
     </div>
   </section>
 
-  <!-- 工作台 -->
-  <section class="scene" id="scene-workbench" aria-label="工作台">
-    <img class="cover-img wb-bg" src="assets/img/studio.jpg" alt="">
-    <div class="wb-canvas-wrap" id="wb-canvas-wrap"></div>
+  <!-- 工作台：接续篇章最后一幕「承艺」。底图即篇章的展台，三维坯体立在画中的青铜圆台上 -->
+  <section class="scene" id="scene-workbench" aria-label="陶艺工作台">
+    <div class="wb-stage" id="wb-stage">
+      <img class="wb-bg" id="wb-bg" src="assets/story/s9.jpg" alt="" draggable="false">
+    </div>
+    <div class="wb-canvas-wrap" id="wb-canvas-wrap" aria-label="可交互的三维陶坯：成形步骤中按住坯体左右拖动塑形，拖动空白处转动转盘"></div>
+    <canvas class="fx-canvas wb-fx" id="wb-fx" aria-hidden="true"></canvas>
     <div class="wb-kiln" id="wb-kiln" aria-hidden="true"><i></i><i></i><i></i></div>
-    <p class="wb-drag-hint" id="wb-drag-hint">拖动旋转 · 滚轮远近</p>
+    <p class="wb-measure" id="wb-measure" aria-live="polite"></p>
+    <p class="wb-drag-hint" id="wb-drag-hint"></p>
 
     <nav class="wb-steps" id="wb-steps" aria-label="创作步骤"></nav>
-
     <aside class="wb-panel" id="wb-panel" aria-live="polite"></aside>
 
-    <div class="wb-tools">
-      <button class="chip" id="wb-undo">撤销</button>
-      <button class="chip" id="wb-redo">重做</button>
+    <figure class="wb-top" id="wb-top" hidden>
+      <div class="wb-top-view" id="wb-top-view"></div>
+      <figcaption>俯视 · <span id="wb-top-name">圆形</span></figcaption>
+      <button class="wb-top-close" id="wb-top-close" aria-label="关闭俯视">×</button>
+    </figure>
+
+    <div class="wb-camera" id="wb-camera" hidden>
+      <div class="wb-camera-video"><video id="wb-webcam" autoplay muted playsinline></video><canvas id="wb-hand"></canvas></div>
+      <p id="wb-gesture-status" role="status">正在启动摄像头…</p>
+      <button class="link-btn" id="wb-camera-close">关闭手势</button>
+    </div>
+
+    <div class="wb-tools" role="toolbar" aria-label="视图与历史">
+      <button class="chip" id="wb-undo" title="撤销 (⌘Z)">撤销</button>
+      <button class="chip" id="wb-redo" title="重做 (⌘⇧Z)">重做</button>
+      <span class="wb-tools-sep" aria-hidden="true"></span>
+      <button class="chip icon" id="wb-zoom-out" aria-label="拉远">－</button>
+      <span class="wb-zoom" id="wb-zoom">100%</span>
+      <button class="chip icon" id="wb-zoom-in" aria-label="推近">＋</button>
+      <button class="chip" id="wb-topview" aria-pressed="false">俯视</button>
+      <button class="chip" id="wb-wheel" aria-pressed="true" title="转盘 (空格)">转盘：转</button>
+      <button class="chip" id="wb-gesture" aria-pressed="false" title="打开摄像头，用手势塑形">手势</button>
     </div>
 
     <div class="wb-ai" id="wb-ai">
-      <div class="ai-reply" id="ai-reply" hidden></div>
+      <div class="ai-log" id="ai-log" hidden>
+        <button class="ai-log-close" id="ai-log-close" aria-label="收起对话">×</button>
+        <div class="ai-msgs" id="ai-msgs" role="log" aria-live="polite"></div>
+      </div>
       <form class="ai-bar" id="ai-form" autocomplete="off">
         <span class="ai-mark" aria-hidden="true"></span>
-        <input id="ai-input" type="text" maxlength="80" placeholder="说说你的心意，如：想要一只修长的天青瓶，配缠枝莲" aria-label="告诉 AI 你的心意">
+        <input id="ai-input" type="text" maxlength="200" placeholder="说说你的心意：想要修长的天青瓶，配缠枝莲…" aria-label="告诉承艺 AI 你的心意">
+        <button type="button" class="ai-mic" id="ai-mic" title="按住说话" aria-label="按住说话" disabled><i aria-hidden="true"></i></button>
         <button type="button" class="link-btn" id="ai-inspire">给我灵感</button>
-        <button type="submit" class="ai-send" aria-label="发送">›</button>
+        <button type="submit" class="ai-send" id="ai-send" aria-label="发送">›</button>
       </form>
-      <p class="ai-note">AI 助手演示版：按关键词理解你的描述，尚未接入大模型</p>
+      <div class="ai-foot">
+        <span class="ai-status" id="ai-status">正在连接…</span>
+        <span class="ai-progress" id="ai-progress" role="status"></span>
+        <button class="link-btn" id="ai-stop" hidden>停止</button>
+        <button class="link-btn ai-read" id="ai-read" aria-pressed="true" title="朗读 AI 的回复">朗读</button>
+      </div>
     </div>
 
-    <button class="pill-btn pill-strong wb-finish" id="wb-finish">完成，入窑 <span aria-hidden="true">›</span></button>
     <p class="wb-caption" id="wb-caption" aria-live="polite"></p>
-
-    <div class="dialog" id="name-dialog" role="dialog" aria-modal="true" aria-labelledby="name-title" hidden>
-      <form class="dialog-card" id="name-form">
-        <p class="dialog-kicker">开窑</p>
-        <h2 id="name-title">为你的器取个名字</h2>
-        <label class="field"><span>器名</span><input id="work-name" maxlength="16" required></label>
-        <label class="field"><span>落款</span><input id="work-author" maxlength="12" placeholder="可留空"></label>
-        <div class="dialog-actions">
-          <button type="button" class="link-btn" id="name-cancel">再改改</button>
-          <button type="submit" class="pill-btn pill-strong">落款，去分享 <span aria-hidden="true">›</span></button>
-        </div>
-      </form>
-    </div>
+    <input type="file" id="wb-file" accept="application/json,.json" hidden>
   </section>
 
   <!-- 分享（本期流程终点） -->
   <section class="scene" id="scene-share" aria-label="分享作品">
-    <img class="cover-img" src="assets/img/studio.jpg" alt="">
+    <img class="cover-img share-bg" src="assets/story/s9.jpg" alt="">
     <div class="share-wrap">
       <figure class="share-card"><img id="share-img" alt="作品分享图"></figure>
       <div class="share-side">

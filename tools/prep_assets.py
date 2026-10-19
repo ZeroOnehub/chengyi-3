@@ -277,7 +277,6 @@ def main():
         (os.path.join(PK, 'backgrounds', 'map-clean.png'), 'map.jpg'),
         (os.path.join(PK, 'backgrounds', 'object-clean.png'), 'object.jpg'),
         (os.path.join(PK, '青瓷近景-分层PNG-v1', '04-后背景.png'), 'object-sky.jpg'),
-        (os.path.join(PROC, '0.png'), 'studio.jpg'),
     ]:
         save_jpg(load(src), os.path.join(img_out, dst), q=88)
     # 透明分层：缩小后保存 PNG
